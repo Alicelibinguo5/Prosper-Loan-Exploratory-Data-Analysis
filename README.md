@@ -20,3 +20,13 @@ Secondly, for borrower, the analysis will explore which group of borrower has
 higher chance to have the changed off debt. 
 Thirdly,the analysis is trying to figure out what kind of 
 investment(combined factors) is the most popular for investor.
+
+
+
+This project includes 5 sections:
+1. Univariate Plots Section
+2. Bivariate Plot Section
+3. Multivariate Plots Section
+4. Final Plot
+5. Reflection
+
