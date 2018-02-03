@@ -1,0 +1,776 @@
+---
+output: html_document
+---
+Prosper Loan Data Analysis by Libin Guo 
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(ggplot2)
+library(grid)
+library(ggthemes)
+library(scales)
+library(gridExtra)
+library(stringi)
+grid.newpage()
+options(scipen=999)
+```
+
+
+```{r echo=FALSE,message=FALSE, warning=FALSE, Load_the_Data}
+# Load the Data
+loan <- read.csv('prosperLoanData.csv') #read prosper loan data 
+```
+
+> Prosper, or Prosper Marketplace, is a leader in the online peer-to-peer 
+lending industry. Borrowers create profiles and listings (request loans), 
+investors either individuals or institutions, view the listing 
+(borrower’s loan request) and decide how much to lend the borrower 
+towards the loan.\
+This Prosper Loan data set contains 113,937 loans with 81 variables on each 
+loan, including loan amount, borrower rate (or interest rate), 
+current loan status, borrower income, borrower employment status, 
+borrower credit history, and the latest payment information.\
+There are 3 stakeholder in this business model -- borrower, investor and 
+the company Prosper. From the business perspective, satisfying need of target 
+customer is the most important thing . This project will focuse in customer 
+analysis and explore profit-driven loan for borrower and lender and conduct 
+time study to see loans changes over the year. Firstly, it will explore the
+classification of target customer - borrower and lender, respectively. 
+Secondly, for borrower, the analysis will explore which group of borrower has 
+higher chance to have the changed off debt. 
+Thirdly,the analysis is trying to figure out what kind of 
+investment(combined factors) is the most popular for investor.
+
+
+# Univariate Plots Section
+
+> In the begining of the project, I want to use univariate plots to explore the 
+overall statistic for Prosper loans and its customer distribution. At first, 
+let's check the overall distribution of Prosper ratings listing to understand 
+more of loan characteristics.
+
+```{r message=FALSE, warning=FALSE}
+
+nrow(loan) # check number of rows 
+ncol(loan) #check number of columns
+names(loan) #Check the name of the dataset
+
+```
+
+Loan Prosper Rating is the fisrt factor I want to check 
+
+```{r echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE, cache.path = 'cache/', fig.path='figure/'}          
+
+ggplot(aes(x=ProsperRating..Alpha.), data = loan,binwidth = 1) +
+  geom_histogram(stat ="count",color =I('black'),fill=I('darkblue'),show.legend = TRUE,binwidth =5) +
+  scale_x_discrete()+
+  xlab('Loan Prosper Rating')+
+  ggtitle('Loan Prosper Rating  Histogram') +
+  theme(plot.title = element_text(hjust = 0.5))
+
+  table(loan$ListingCategory..numeric.)
+  #Create Listing Category Histogram 
+ggplot(aes(x=ListingCategory..numeric.), data = loan,binwidth = 1) +
+  geom_histogram(stat ="count",fill=I('darkblue'),
+  show.legend = TRUE,binwidth =5) +
+  scale_x_discrete(limit = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,
+  19,20))+
+  xlab('Listing Category')+
+  ggtitle('Listing Category Histogram') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+From Loan Prosper Rating histogram, we can see there is near 30,000 unrated
+listing. 
+Also, Rating C loans has highest number among all the listing, which is close 
+to 18,000 listings.B, C rating Loan are top 2 and to 3 popular ratings. 
+Also,from Listing Category Frequency Histogram, we can also learn that Debt 
+Consolidation is Top1 category of all the listing category and has 58308, 
+which is about 50% of total number of loans.Let's also plot a time study 
+histogry to see the number of loans.
+
+```{r echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE, cache.path = 'cache/', fig.path='figure/'} 
+summary(loan$LoanOriginationQuarter)
+
+
+loan$year <- stri_sub(loan$LoanOriginationQuarter,-4,-1)
+
+ggplot(aes(x=year), data = loan,binwidth = 1) +
+  geom_histogram(stat ="count",color =I('black'),fill=I('darkblue'),
+      show.legend = TRUE,binwidth =5) +
+  xlab('Year ')+
+  ggtitle('Number of Loan by year Histogram')
+  
+ggplot(aes(x=LoanOriginationQuarter), data = loan) +
+  geom_histogram(stat ="count",fill=I('darkblue'),
+      show.legend = TRUE,binwidth = 0.5) +
+  scale_x_discrete() +
+  xlab('Quater Year ')+
+  ggtitle('Number of Loan by Quarter Histogram') +
+   coord_flip() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Year variable needed to be extracted and transfomed from quater variable at 
+first and plot histogram using both time varaibles. From these two graphs,
+we can see the number of total Prosper loan has ups and downs trend from 2006 
+to 2014. It went up from 2006 to 2008 and dropped heavily in 2009, which may be 
+caused by financial crisis in 2008, then it increased again until 2014 Q1, 
+2014 only has 1 quarter data, which can not represent whole year. 
+Overall, the total number of loan are increasing over the years.
+
+Now I have seen some loan information, I want to know the cluster customer by 
+Customer Risk Score to its distribution.
+
+```{r fig.width=16, fig.height=8,echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE, cache.path = 'cache/', fig.path='figure/'}
+
+ggplot(aes(x=ProsperScore), data = subset(loan, !is.na(ProsperScore))) +
+  geom_histogram(fill =I('darkblue'), color =I('black'),
+      show.legend = TRUE,binwidth =1,aes(y = ..count../sum(..count..))) +
+  scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11))+
+  scale_y_continuous() +
+  labs(title = "Customer Prosper Score Percentage Histogram (the score ranges
+      from 1-10, with 10 being the lowest risk score. )",
+      y = "Percent", x = "Prosper Score") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+ggplot(aes(x=BorrowerState), data = loan) +
+  geom_histogram(stat ="count", fill =I('darkblue'), color =I('black'),
+      show.legend = TRUE,binwidth = 1) +
+  scale_y_continuous() +
+  labs(title = "Borrower State Loans Distribution",
+      y = "Count", x = "Borrower State")+
+   theme(plot.title = element_text(hjust = 0.5))
+```
+ 
+From the chart, we can conclude the customers' risk score is normally 
+distributed and about 70% customers' risk score are between 3.5 and 8.5.From
+Borrow State Frequency chart, we can see CA- California has the highest number
+of loans, which is more than twice than the secondest highest state -Texas. 
+This makes sense as Prosper's was founded in California and it should has the 
+largest base customer. 
+After exploring borrower data, let's check investor related variable - number of
+investor per loan. 
+
+```{r echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE, cache.path = 'cache/', fig.path='figure/'}
+summary(loan$Investors) 
+
+ggplot(aes(x=Investors), data = loan) +
+  geom_density(fill =I('darkblue'), color =I('black'))+
+  ggtitle('Number of Investors Per Loan Density Distribution') +
+  xlab('Number of Investors Per Loan(95% quatile)') + 
+  xlim(0, quantile(loan$Investors,0.95))+
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+The max number of investors per loan is 1189, while density graph shows that 95%
+of loan's number of investor are in the range of (0,290). The median number of 
+investors are 44. This variable should be investigated later to see which loan 
+attracts investors the most.
+Another factors that is important for investor is return rate, let's check the
+return rate distribution using bar chart.
+Since EstimatedReturn has a lot of missing data, I need to remove them at first.
+
+```{r echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE, cache.path = 'cache/', fig.path='figure/'}
+
+summary(loan$EstimatedReturn)
+ggplot(aes(x=EstimatedReturn), data = subset(loan, !is.na(EstimatedReturn))) +
+  geom_bar(color =I('darkblue')  )+
+  ggtitle('Estimated Return Histogram')+
+  scale_x_continuous(labels = percent) +
+  xlab('Estimated Return') +
+  theme(plot.title = element_text(hjust = 0.5))
+``` 
+
+The avereage return rate is 9.6% overall, which is about the center of this 
+frequency ploygen charts. There is one outler about return rate 13%, which I 
+want to explore later.
+Also, Loan Amount distribution will be a interesting metric. At first, i see a
+very long tailed histogram and I decided to use 90% quantile to see the majority 
+of loan Amount lies.
+
+```{r echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE, cache.path = 'cache/', fig.path='figure/'}
+summary(loan$LoanOriginalAmount)
+
+ggplot(aes(x=LoanOriginalAmount), data = loan) +
+  geom_histogram(fill =I('darkblue'), color =I('black'))+
+  ggtitle('Loan Amount Histogram')+
+  scale_x_continuous(limit =c(0, quantile(loan$LoanOriginalAmount,0.90)))+
+  xlab('Loan Original Amount') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+  
+Obviouslly, 90% of loan amount are between 1000 and 15000, and the max amount is
+$35,000, the median amount is $6500.
+Now we know most people has median risk score, the 3rd question I will be
+interested is how long will people usually choose for loan? Let’s answer this 
+question with a histogram. Since the terms is months unit, I will tranform it
+into year)
+
+```{r echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE, cache.path = 'cache/', fig.path='figure/'}
+ggplot(aes(x=Term/12), data = loan) +
+  geom_histogram(stat ="count",color = I('black'),fill = I('darkblue')) +
+  scale_x_continuous()+
+  xlab('Term(Years)') +
+  ylab('Number of Listing') + 
+  ggtitle('Terms(Years) Histogram') +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+We can see from the result that about 3 years terms is most popular option to 
+pay the loan.So far, we got a general idea of the prosper loan product, let's 
+check the overall statistic for Loan status to see how well people pay their 
+loan.
+
+```{r echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE, cache.path = 'cache/', fig.path='figure/', }
+ggplot(aes(x=LoanStatus), data = loan) +
+  geom_histogram(stat ="count",fill = I('darkgreen'),show.legend = TRUE,
+      aes(y = (..count..)/sum(..count..))) +
+  xlab('Loan Status') +
+  ylab('Number of Listing') + 
+  scale_y_continuous(labels = percent) +
+  ggtitle('Loan Status Frequency Histogram') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  coord_flip() 
+```
+
+From this fipped histogram, we can see about 33% of loan are completed, almost 
+50% loan are still in program, while about 10% loan are changed off. a low 
+charged off loan rate is a indicator of good loan product. To help prosper
+succeed, I want to figure out which factors lead to higher chance of loan being
+charged off. I will use scatter plot to explore the coefficient between variable
+and loan.
+Since we explore terms of years and  loan status in Univariate Analysis, I want 
+to limit the plot to loan status 'Completed' and 'Chargedoff' by terms to see 
+how differnt terms of loan varies for these two categories.
+
+```{r fig.width=12, fig.height=6,echo=FALSE,message=FALSE, warning=FALSE,cache=TRUE, cache.path = 'cache/', fig.path='figure/'}
+p1 <- ggplot(aes((x=Term/12)), data =               
+          subset(loan,LoanStatus == 'Completed')) +
+      geom_bar(fill =I('blue'),aes(y = (..count..)/sum(..count..))) +
+      scale_y_continuous(labels = percent)+
+      labs(x= 'Terms(year)', title ='Completed Status Terms Bar Chart',
+          y='Perentage')+
+      theme(plot.title = element_text(hjust = 0.5))
+    
+p2 <- ggplot(aes((x=Term/12)), data =               
+          subset(loan,LoanStatus != 'Completed')) +
+      geom_bar(fill =I('darkgreen'),aes(y = (..count..)/sum(..count..))) +
+      scale_y_continuous(labels = percent)+
+      labs(x= 'Terms(year)', title ='Noncompleted Status Terms Bar Chart', 
+          y='Perentage')+
+      theme(plot.title = element_text(hjust = 0.5))
+          
+grid.arrange(p1, p2, ncol=2)
+```
+
+From above two bar talbe, we can see most terms in completed status are 3 years 
+terms, in non_completed status, there is higher percentage of 5 years terms, 
+this makes sense to the data.
+
+# Univariate Analysis
+
+#### What is the structure of your dataset?
+This dataset contains 81 variable, these variable can be generally divided as 4 
+groups - loan/Listing variables, borrower variable, LP-Prosper Payment related
+variable, and time variabls. This data contains continuous, binary, nominal and
+discrete data. I will use different plot for different data type. 
+
+#### What is/are the main feature(s) of interest in your dataset?
+I am interesting in which customer group have a higher probablity of paying loan
+on time and which customer groups have a higher chance of loans being charged
+off.Secondly, I am also curious to see which type of loan factor affects
+investor's the most, so that Prosper can benefit and make strategy of selling
+different loans.lastly, I also want to investigate the trend of customer/Profit
+change over the year to validate the past business strategy is working.
+
+#### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+I think borrower geographical and demographical information will be very helpful
+for investigating the customer group.
+Also, EstimatedReturn rate may be a good measurement for a good lender and I can
+explore the correlation between EstimatedReturn rate and 
+Furthermore, columns with prefix 'LP_' can be used to calculate the profit 
+Prosper gain from each listing.
+
+#### Did you create any new variables from existing variables in the dataset?
+Yes, I created year varibale form LoanOriginationQuarter and  percentage 
+variable by Customer risk score and by loan status
+
+#### Of the features you investigated, were there any unusual distributions? \
+
+Yes, I transformed term into year unit to have a better understanding of length
+of loan terms since terms in months is very scatterred. After transforming, it 
+is clear to see 3 years' term is the most popular option for borrower. 
+
+
+# Bivariate Plots Section
+
+Additionally,let's check the average borrower LoanOriginalAmount per loan status to see if high risk borrower have higher percentage of charged off loans. , there are a lot N/A value among completed, current and charged off listing status. Therefore, before computing the average value, N/A value is removed.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots}
+
+ loan.scorestatus <- loan %>%
+    group_by(LoanStatus) %>%
+    summarise(Avg_ProsperScore  = mean(ProsperScore,na.rm = TRUE), n =n()) %>%
+    arrange(Avg_ProsperScore)
+  
+head(loan.scorestatus,14)
+
+ggplot(aes(x=LoanStatus, y= Avg_ProsperScore), data = loan.scorestatus) +
+    scale_x_discrete()+
+    scale_y_continuous(limits = c(0,8), breaks = c(0,1,2,3,4,5,6,7,8))+
+    geom_bar(stat="identity",aes(fill = ..x..), show.legend = FALSE)+
+    ylab('Average Prosper Score') +
+    ggtitle('Average Prosper Score by Loan Status') +
+    coord_flip()
+```
+
+From the bar chart, we can see Completed group of borrower has the highest 
+average Prosper Score, which means they have lowest risk. apparantly, prosper
+score is a relaible indicator of good loan candidate.
+
+The higher LoanOriginalAmount means higher profit contribution of borrower, 
+which can help Prosper make suitable marketing plan.
+On the other hand, years of employment can be a good meansurement to find the 
+target custmor
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+loan$experience <- loan$EmploymentStatusDuration/12
+ggplot(aes(x=experience, y=LoanOriginalAmount),
+               data = loan) +
+  geom_point( color =I('darkgreen'), alpha = 1/10)+
+  scale_x_discrete(limits = c(0,5,10,15,20,25,30,35,40,45,50,55,60,65))+
+  ggtitle('Scatter Plot of Loan Amount vs Years of Employment Experience ')+
+  geom_smooth()+
+  ylab('Loan Amount')+
+  xlab('Employment in year')
+
+loan.loanByExp<- loan %>%
+    group_by(experience) %>%
+    summarise(avgAmt = mean(LoanOriginalAmount), 
+              sumAmt =sum(LoanOriginalAmount),
+              n =n()) %>%
+arrange(desc(avgAmt))
+  
+head(loan.loanByExp)
+
+ggplot(aes(x=(experience), y=avgAmt), data = loan.loanByExp) +
+  geom_line(binwidth=5, color =I('Orange'))+
+  scale_x_discrete(limits = c(0,5,10,15,20,25,30,35,40,45,50,55,60,65))+
+  ggtitle('Average Loan Amount by Years of Employment Experience  Line Chart')+
+  ylab('Average Loan Amount')+
+  xlab('Enployment in year')
+```
+
+The Scatter Plot of loan Amount vs Years of Employment Experience line shows no
+relationship between oan Amount and Years of Employment. Let's try to use 
+average LoanOriginalAmount by experience of employment at first
+From Average Loan Amount by Years of Employment Experience Line Chart, we can 
+see the years of Employment Experience between 45 and 50 has the highest average LoanOriginalAmount, which is outlier, much more than other experience group. 
+This group have high demand of loan amount per person which can be further 
+explored.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(aes(x=year, y=LoanOriginalAmount),data = na.omit(loan, cols="ProsperRating..Alpha.")) +
+  geom_bar(stat ="summary",aes(fill=ProsperRating..Alpha.),position = "dodge",
+                  fun.y = "sum", show.legend = TRUE) +
+  scale_x_discrete(breaks = c(2006,2007,2008,2009,2010,2011,2012,2013, 2014))+
+  ggtitle('Scatter Plot of Total Loan Amount vs Year')+
+  ylab('Total Loan Amount')+
+  xlab('Year')
+
+ggplot(aes(x=(Term/12), y=LoanOriginalAmount),data = loan) +
+     geom_jitter(color =I('blue'), alpha =0.025)+
+  scale_x_discrete(breaks = c(1,3,5))+
+  scale_y_continuous(limits = c(0,40000)) +
+  ggtitle('Scatter Plot of Loan Amount vs Term in Year')+
+  ylab('Loan Amount')+
+  xlab('Term in year')
+
+with(loan,cor((Term/12),LoanOriginalAmount))
+```
+From Scatter Plot of Total Loan Amount vs Year, we cannot see proper rating
+system between 2006 to 2008 because the missing value form prosper rating 
+column have been removed, which means from 2006 to 2008, there is no prosper 
+rating systerm.
+Plus,the total loan amount is increasing from 2010 to 2012. large amount of 2013
+loan and 2014's loans have not been rated yet.
+
+Also, from scatter plot of Loan Amount vs Term in year has positive 
+correlation,their coefficient correlation is 0.3389, which is moderate level.
+Another question I have in mind is EstimatedReturn rate's relationship with 
+number of investors. Does higher return rate attract more investor?  Let's find 
+out in scatter plot.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(y=EstimatedReturn, x=Investors), 
+  data =subset(loan, !is.na(EstimatedReturn))) +
+  geom_point(binwidth=2, alpha =0.25) +
+  xlab('Number of Investors') +
+  scale_y_continuous(labels = percent) +
+  ggtitle('Scatter Plot for Number of Investors and Return Rate')
+```
+
+The estimated return and number of investor are not totally positively correlated. The range of estimated return between 5% and 17% attract the majority of investor, the rate between 4% and above 18% attract compararty small investor. This can be investigated in next section.
+Additionally, I also want to see the  EstimatedReturn rate's relationship with ProsperRating to see if they have strong correlation using boxplot. Do higher prosper rating have higher return rate?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE} 
+ggplot(aes(y=EstimatedReturn, x=ProsperRating..Alpha.) , data =subset(loan, !is.na(EstimatedReturn)))+
+  geom_boxplot(fill=I('blue'),show.legend = TRUE) +
+  scale_x_discrete()+
+  xlab('Prosper Rating') +
+  ylab('Estimated Return Rate')+
+  ggtitle('Box Plot of Prosper Rating vs Estimated Return Rate')+
+  scale_y_continuous(labels = percent)
+  
+```
+
+From the boxplot, we can tell the highest risk rating HR result in second 
+highest average return rate,while it has long range of return rate from -20% to
+14%. Also, from AA -E, the average return rate goes up even the rating goes 
+down. ProsperRating and return rate seem have weak negative correlation.
+
+# Bivariate Analysis
+
+##### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in 
+the dataset?
+From Average Prosper Score vs Loan Status chart, we can see apparantly people who has completed loan carries highest prosper score among all category. This also proves the effectiveness and accurancy of prosper score.
+
+
+
+####Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+from the Employment Experience vs  LoanOriginalAmount charts, we can conclude 
+that  group 'between 45 and 50' has the highest average LoanOriginalAmount, 
+which is outlier. This is very interesting because it shows this age group 
+people likes to borrow more debts from Prosper. 
+
+#### What was the strongest relationship you found?
+Among, above analysis, LoanOriginalAmount and Term in year has positive 
+correlation,their coefficient correlation is 0.3389, which is moderate level.
+
+
+## Multivariate Plots Section
+
+> As I stated in univariate analysis summary, geographical information can be a 
+good part to segment borrower.
+In this section, 
+1. I will analyze borrowers' data from geographical and demographical factor. 
+2. I will further explore EstimatedReturn and chargedoff loss for investor'
+relationship with loan and borrower's factor.
+3. I will conduct a time study for overall proper loan and investor's preference
+for loans.
+
+#####1.1  ProsperScore vs Loan Status (completed and charged off) vs Borrower State. 
+
+```{r fig.width=15, fig.height=6,echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots}
+
+ggplot(aes(x=BorrowerState, y= ProsperScore),
+    data = subset(loan, LoanStatus %in% c('Completed','Chargedoff'))) +
+    scale_y_continuous(limits = c(0,8), breaks = c(0,1,2,3,4,5,6,7,8)) +
+    geom_bar(stat="summary", aes(fill=LoanStatus),show.legend = TRUE, 
+        fun.y =mean,position = "dodge", size = 1) +
+    ylab('Average Prosper Score') +
+    ggtitle('Prosper Score by Loan Status -(Completed, charged off) by state')+
+    theme(axis.text.x = element_text(angle = 0, hjust = 1))
+```
+
+This result is really intriguing, almost all the state's completed loan borrower
+have higher prosper score except MT- Montana. Motana's chargedoff loan borrower 
+has about 6.8 Prosper score , very high compared to its completed loan borrower 
+score 5.5. Montana is very unique case. 
+
+#####1.2   State vs LoanOriginalAmount vs IsBorrowerHomeowner 
+
+```{r fig.width=15, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x=BorrowerState, y= LoanOriginalAmount),
+               data = loan) +
+    geom_bar(stat="summary",aes(fill=IsBorrowerHomeowner),show.legend = TRUE,
+             fun.y = median, position = "dodge", size = 1) +
+    ylab('Median Loan Original Amount') +
+    ggtitle('Median Loan Original Amount vs IsBorrowerHomeowner by state')+
+    theme(axis.text.x = element_text(angle = 0, hjust = 1))
+```  
+
+We can see from the graph that people who are homeowner will have higher loan 
+than people who does not own a home in all state. IsBorrowerHomeowner is 
+definitely a motivator for people to loan. additionaly, DC, CA and HI are top 
+3 states who have highest Medium Loan Original Amount. DC borrower loans much 
+higher than other states in the chart.
+
+#####2.1 I EstimatedReturn vs ProsperRating facet vs Employment status
+
+```{r fig.width=18, fig.height=16, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(y=EstimatedReturn,
+x=ListingCategory..numeric.), data =subset(loan, !is.na(EstimatedReturn))) +
+  geom_point(alpha =0.25, color =I('blue'))+
+  facet_wrap(~EmploymentStatus,scales='free')+
+  geom_smooth(method ='lm')+
+  xlab('Listing Category') +
+  ylab('Estimated Return')+
+  scale_y_continuous(labels = percent) +
+  scale_x_continuous(
+ breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20))+
+  theme_minimal() +
+  annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf)+
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle('Scatter plot of Return Rate vs Listing Category , facet by 
+          Employment status')
+```
+
+The Estimated Return rate for different employment type of borrower does not 
+vary much, but they do have different preference for different category of loan.
+
+#####2.2 LP_GrossPrincipalLoss vs ProsperRating vs Income Range
+The investment always have gains and loss. Let's further investigate the factors
+that influence borrowers LP_GrossPrincipalLoss because this will affect the 
+rating of loan and evaluate which loan will investor loss the most money on.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(loan$LP_GrossPrincipalLoss)
+
+ggplot(aes(x=ProsperRating..Alpha., y= LP_GrossPrincipalLoss),
+               data = subset(loan,!is.na(LP_GrossPrincipalLoss))) +
+               scale_x_discrete()+
+               scale_y_continuous(limits =c(0,25000))+
+    geom_bar(stat="identity",show.legend = TRUE,aes(fill =IncomeRange), 
+             position = "dodge",  size = 1) +
+    geom_smooth(method ='lm')+
+    ylab('Gross Principal Loss')  +
+    ggtitle('Bar Chart of Gross Principal Loss vs Prosper Rating by Income Range')
+```
+
+Surprisingly, Low risk loan have higher total amount of loss, this is probably 
+due to low risk loan has more investment. Also, high income group
+($75,000 -99,999) has highest percentage in HR High risk rating loan. 
+apearantly, the higher the income,the more risk people are willing to take.
+
+######2.3 EstimatedReturn vs  vs ProsperRating by Income Range
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x=ProsperRating..Alpha., y=EstimatedReturn),
+               data = subset(loan,!is.na(EstimatedReturn))) +
+    scale_x_discrete()+
+    scale_y_continuous(labels =percent)+
+    geom_bar(stat="identity",show.legend = TRUE,aes(fill =IncomeRange), 
+             position = "dodge",  size = 1) +
+    ylab('Estimated Return')  +
+    ggtitle('Bar Chart of Estimated Return vs Prosper Rating by Income Range')
+```
+
+We can see that HR rating loan has the widest range of estimated return, 
+from -20% to 18%. Rating A, AA low risk loan don't have negative return rate. 
+
+######3.1 Time study of Trend of customer and investor preference for loan.  
+Before ploting, I remove 2005 and 2014 year since they only have one quater data
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(loan$LoanOriginalAmount)
+options(scipen=999)
+  ggplot(aes(x=year, y=LoanOriginalAmount), 
+         data = subset(na.omit(loan, cols="ProsperRating..Alpha."),
+                       !(year %in% c(2005,2006,2007,2008,2014)))) +
+  geom_bar(stat ="summary",aes(fill=ProsperRating..Alpha.),
+        position = "dodge",fun.y = "sum", show.legend = TRUE) +
+  scale_x_discrete(breaks =c(2009,2010,2011,2012,2013)) +
+  scale_y_continuous() +
+  xlab('Year ')+
+  ggtitle('Total Loan Amount by Prosper Rating from 2006 to 2013') 
+  
+ggplot(aes(x=year, y=Investors), 
+       data = subset(na.omit(loan, cols="ProsperRating..Alpha."),
+                     !(year %in% c(2005,2006,2007,2008,2014)))) +
+  geom_bar(stat ="summary",aes(fill=ProsperRating..Alpha.),position = "dodge",
+           fun.y = "sum", show.legend = TRUE) +
+  scale_x_discrete( breaks=c(2009,2010,2011,2012,2013)) +
+  xlab('Year 2006 to 2013 ') +
+  ggtitle('Total Number of Investor by Prosper Rating from 2006 to 2013') 
+```
+
+Before 2009, Prosper did not have prosper rating system for their loan, 
+therefore, I remove years before 2009 and 2014 and remove missing value in 
+prosper rating.The total loan amount and number of investors is increasing from 
+2006 to 2012, which is good sign that Prosper's business is growing. However, 
+compared to 2012, 2013's number is very low. In bivariate analysis, I plot year
+vs total loan amount, the 2013 number is higher than 2012, which may mean a 
+large number of 2013's loan have not been rated yet. 
+
+Let's also check loan return rate vs vs Proper rating over years.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x=year, y=EstimatedReturn), 
+       data =  subset(loan,!(year %in% c(2005,2006,2007,2008,2014)))) +
+  geom_bar(stat ="summary",aes(fill=ProsperRating..Alpha.),fun.y = mean, 
+           show.legend = TRUE,position = "dodge") +
+  scale_x_discrete(breaks=c(2006,2007,2008,2009,2010,2011,2012,2013)) +
+  scale_y_continuous(labels = percent)+
+  xlab('Year 2009 to 2013 ') +
+  ylab('Estimated Return') +
+  ggtitle('Average Estimated Return by Prosper Rating from 2009 to 2013') 
+```
+
+The graphy shows that from 2010 to 2013, the average estimated return rate is acutually decreasing for all rating of loans.
+
+# Multivariate Analysis
+
+#### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of \
+looking at your feature(s) of interest?
+
+1.From 1.2 charts of Median  LoanOriginalAmount vs IsBorrowerHomeowner by state 
+shows that people who are homeowner will have higher loan than people who does 
+not own a home in all state. IsBorrowerHomeowner is definitely a motivator for 
+people to loan. additionaly, DC, CA and HI are top 3 states who have highest 
+Medium Loan Original Amount. DC borrower loans much higher than other states 
+in the chart and top natinalwide.
+
+2. From 3 times study graphs, we can learn before 2009, Prosper did not have 
+prosper rating system for their loan.The total loan amount and total number of 
+investors is increasing from 2006 to 2013, which is a sign that Prosper's 
+business is growing.The 3rd time study graph shows that from 2010 to 2013, the
+average estimated return rate is acutually decreasing for all rating of loans.
+
+#### Were there any interesting or surprising interactions between features?
+
+In bar chart of Prosper Score by Loan Status -(Completed, charged off) by state,
+all the state's completed loan borrower have higher average prosper score except
+MT- Montana. Motana's chargedoff loan borrower has about 6.8 Prosper score, 
+very high compared to its completed loan borrower score 5.5. 
+
+furthermore, from chart of GrossPrincipalLoss vs ProsperRating by Income Range,
+surprising, Low risk loan have higher total amount of loss, this is probably due 
+to low risk loan has more investment. Also, high income group($75,000 -99,999) 
+has highest percentage in HR High risk rating loan. apearantly, the higher the 
+income,the more risk people are willing to take.
+  
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r fig.width=15, fig.height=10,echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE, cache.path = 'cache/', fig.path='figure/', Plot_One}
+
+ggplot(aes(x=BorrowerState, y= LoanOriginalAmount),
+               data = loan) +
+  geom_bar(stat="summary",aes(fill=IsBorrowerHomeowner),show.legend = TRUE, 
+      fun.y = median, position = "dodge", size = 1) +
+  ylab('Median Loan Original Amount') +
+  scale_fill_grey(start = 0.2, end = 0.8,na.value = "red") +
+  scale_y_continuous(labels = dollar)+
+  xlab('Borrower State')+
+  ggtitle('Dodge Bar Chart of Median Loan Amount by state vs Borrower Homeowner Indicator') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  guides(fill=guide_legend(title="Borrower Homeowner Indicator"))
+
+
+```
+
+### Description One
+The graph shows that people who are homeowner will have higher loan than people who does not own a home in all state. IsBorrowerHomeowner is definitely a motivator for people to loan. additionaly, DC, CA and HI are top 3 states who have highest Medium Loan Original Amount. DC borrowers' average loans is about $11,000, which is much higher than other states nationalwide. Hawaii borrower has the highest percentage of not owning home among all the states. 
+
+### Plot Two
+
+```{r fig.width=12, fig.height=15,echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE,cache.path = 'cache/', fig.path='figure/', Plot_Two}
+
+b1 <- ggplot(aes(x=ProsperRating..Alpha., y=EstimatedReturn),
+            data = subset(loan,!is.na(EstimatedReturn))) +
+        scale_x_discrete()+
+             scale_y_continuous(labels =percent)+
+        geom_boxplot(show.legend = TRUE,color =I('darkgreen'),
+              position = "dodge",  size = 1) +
+        ylab('Estimated Return')  +
+        xlab('Prosper Rating') +
+        ggtitle('Box Plot of Estimated Return vs Prosper Rating') +
+        theme(plot.title = element_text(hjust = 0.5))
+
+b2 <-ggplot(aes(x=ProsperRating..Alpha., y= LP_GrossPrincipalLoss),
+               data = subset(loan,!is.na(LP_GrossPrincipalLoss))) +
+       scale_x_discrete()+
+       scale_fill_brewer(palette = "Blues") +
+       scale_y_continuous(limits =c(0,25000), labels =dollar)+
+       geom_bar(stat="identity",show.legend = TRUE,aes(fill =IncomeRange), 
+           position = "dodge",  size = 1) +
+       xlab('Prosper Rating') +
+       ylab('Gross Principal Loss')  +
+       ggtitle('Dodge Bar Chart Gross Principal Loss vs Prosper Rating vs Income Range') +
+       theme(plot.title = element_text(hjust = 0.5)) +
+      guides(fill=guide_legend(title="Income Rating"))
+
+
+grid.arrange(b1, b2, ncol=1)
+
+```
+
+### Description Two
+The  graphs show that low risk loan have higher total amount of loss, compared to total loan amount per rating group. Also, high income group($75,000 -99,999) has highest percentage in HR High risk rating loan. Therefore, we can conclude the higher the income,the more risk people are willing to take. 
+In addition, we can see that HR rating loan, which has the lowest total loan amount, has the widest range of estimated return, from -20% to 18%. Rating A, AA low risk loan don't have negative return rate. Rating Loan D and E have the highest average return rate.
+
+### Plot Three
+
+```{r fig.width=16, fig.height=8, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE,cache.path = 'cache/', fig.path='figure/',Plot_Three}
+
+
+t1 <- ggplot(aes(x=year, y=LoanOriginalAmount), 
+        data = na.omit(loan,cols="ProsperRating..Alpha."))+
+        geom_bar(stat ="summary",aes(fill=ProsperRating..Alpha.),
+                  fun.y = "sum", show.legend = TRUE) +
+        scale_x_discrete(breaks=c(2009,2010,2011,2012,2013)) +
+        scale_y_continuous(labels = dollar) +
+        xlab('Year 2009 to 2013 ') +
+        ylab('Loan Original Amount') +
+        ggtitle('Total Loan Amount by Prosper Rating from 2009 to 2013')  +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        guides(fill=guide_legend(title="Prosper Rating"))
+  
+ # Number of investor vs Proper rating  over years
+t2 <- ggplot(aes(x=year, y=Investors), 
+      data =na.omit(loan, cols="ProsperRating..Alpha.")) +
+      geom_bar(stat ="summary",aes(fill=ProsperRating..Alpha.),
+          fun.y = "sum", show.legend = TRUE) +
+      scale_x_discrete(breaks=c(2009,2010,2011,2012,2013))+
+      xlab('Year 2009 to 2013') +
+      ylab('Number of Investor') +
+      scale_fill_brewer(palette = "Purples") +
+      ggtitle('Total Number of Investor by Prosper Rating from 2009 to 2013') +
+      theme(plot.title = element_text(hjust = 0.5))  +
+      guides(fill=guide_legend(title="Prosper Rating"))
+
+      grid.arrange(t1, t2, ncol=2)
+```
+
+### Description Three
+Before 2009, Prosper did not have prosper rating system for their loan, therefore, I remove years before 2009 and 2014 and remove missing value in prosper rating.The total loan amount and number of investors is increasing from 2006 to 2012, which is good sign that Prosper's business is growing. 
+However, I noticed, compared to 2012, 2013's number is very low. In bivariate analysis, I plot year vs total loan amount, the 2013 number is higher than 2012, which may mean a large number of 2013's loan have not been rated yet since the latest quater is Q1 2014.
+Also, from these two charts, we can see prosper rating D and C loan are most popular products For investor and borrowers in Prosper in 2012, especially for borrower, these two loans are the most attractive one. While loan E's percentage of investors' number is decreasing from 2010 to 2012.
+
+------
+
+# Reflection
+
+The biggest struggle I faced in the begining of this project is to find the most interesting question to ask and select useful variables from these 81 variables.
+
+In order to come up a good business question to ask, I did reseach on prosper.com to understand its business model,read data disctionary several times to understand the meaning of each columns and browse blog of this dataset online. Then I conduct summary() function to check the value of each value to understand the data structure better, and I believe data analysis is designed to help business  answer question,and the 1st thing about business is customer-focused and product focused.
+therefore, I designed the project to perform customer analysis and explore profit-driven loan for borrower and lender and conduct time study to see loans changes over the year.
+1. Explore the classification of target customer - borrower and lender, respectively. 
+2. For borrower, the analysis will explore which group of borrower has higher chance to have the changed off debt. 
+3. Identify what kind of investment(combined factors) is the most popular for investor.
+
+I succesfully divided data variable into different groups -borrower, loan, investors,and LP payment, and created all kinds of charts using ggplot2. Firstly,I created plot to show Average Prosper Score by Loan Status by state, and noticed that the better risk score and the higher completion rate.I also find out the terms and Loan amount have moderate positive correlation and home ower will more likely to request higher amount loan. For loan product side, I discovered that product B and C are most popular loan which attracts the most of investors.
+
+Furthermore, a surprisingly interesting pattern that the lower risk loan is, the higher risk of being charged off.  Also, another surprising discovery is from the Employment Experience vs  LoanOriginalAmount charts, which shows  group 'between 45 and 50' has the highest average LoanOriginalAmount, which is outlier. This is very interesting because it shows this age group people likes to borrow more debts from Prosper.
+
+For the future improvement of data anlaysis, I will consider to discover more variable with strong/weak coefficient correlation between return rate of loan, and build a linear/logistic regression model to predict return rate for more loan product.Statistical tests, for example ttest,could be used to further explore this dataset.For instanct, ttest can be conducted using two samples from the same rating loan from 2009 and 2012 to infer the whole population to determine whether the average loan amount for loans in 2009 and 2012 are different or not.
+
+
+
+
+
+
+
