@@ -4,12 +4,12 @@ Prosper, or Prosper Marketplace, is a leader in the online peer-to-peer
 lending industry. Borrowers create profiles and listings (request loans), 
 investors either individuals or institutions, view the listing 
 (borrower’s loan request) and decide how much to lend the borrower 
-towards the loan.\
+towards the loan.
 
 This Prosper Loan data set contains 113,937 loans with 81 variables on each 
 loan, including loan amount, borrower rate (or interest rate), 
 current loan status, borrower income, borrower employment status, 
-borrower credit history, and the latest payment information.\
+borrower credit history, and the latest payment information.
 
 There are 3 stakeholder in this business model -- borrower, investor and 
 the company Prosper. From the business perspective, satisfying need of target 
