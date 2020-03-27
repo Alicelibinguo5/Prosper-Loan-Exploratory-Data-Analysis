@@ -1,4 +1,5 @@
 # Prosper-Loan-Exploratory-Data-Analysis
+Author: Libin Guo
 
 Prosper, or Prosper Marketplace, is a leader in the online peer-to-peer 
 lending industry. Borrowers create profiles and listings (request loans), 
